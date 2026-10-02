@@ -166,12 +166,12 @@
       .plooum-card {
         background: rgba(0, 0, 0, 0.35);
         border-radius: 20px;
-        padding: 4px 8px;
+        padding: 6px 8px; /* Légèrement plus d'espace vertical pour le multiligne */
         box-sizing: border-box;
         box-shadow: none;
         border: none;
         position: relative;
-        height: 56px;
+        min-height: 56px; /* Devient une hauteur minimale pour s'agrandir si le texte fait plusieurs lignes */
         overflow: visible;
         cursor: pointer;
         user-select: none;
@@ -193,19 +193,21 @@
         height: 28px;
         flex-shrink: 0;
         z-index: 1;
-        margin-left: -4px; /* Légèrement décalé vers la gauche */
+        margin-left: -4px;
       }
       .main-text {
         position: absolute;
         left: 0;
         right: 0;
         text-align: center;
-        font-size: 14px;
+        font-size: 13px; /* Légèrement réduit pour mieux passer sur plusieurs lignes */
+        line-height: 1.2;
         font-weight: 700;
-        white-space: nowrap;
+        white-space: normal; /* Autorise le retour à la ligne */
+        word-break: break-word; /* Coupe proprement les mots trop longs si nécessaire */
         z-index: 2;
         pointer-events: none;
-        padding-left: 24px; /* Ajusté pour suivre le déplacement de l'icône */
+        padding-left: 24px;
       }
       .badge {
         position: absolute;
