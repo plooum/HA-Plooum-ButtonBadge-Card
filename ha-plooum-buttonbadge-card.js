@@ -172,7 +172,7 @@
         border: none;
         position: relative;
         height: 56px;
-        overflow: visible; /* Indispensable pour laisser le badge dépasser de la carte sans être coupé */
+        overflow: visible;
         cursor: pointer;
         user-select: none;
         -webkit-user-select: none;
@@ -193,6 +193,7 @@
         height: 28px;
         flex-shrink: 0;
         z-index: 1;
+        margin-left: -4px; /* Légèrement décalé vers la gauche */
       }
       .main-text {
         position: absolute;
@@ -204,8 +205,7 @@
         white-space: nowrap;
         z-index: 2;
         pointer-events: none;
-        /* Réduit à 28px pour que le texte puisse se décaler et mordre un peu plus sur l'icône */
-        padding-left: 28px; 
+        padding-left: 24px; /* Ajusté pour suivre le déplacement de l'icône */
       }
       .badge {
         position: absolute;
