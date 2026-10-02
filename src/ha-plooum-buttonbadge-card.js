@@ -230,7 +230,7 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
   }
 
   async _loadHAElements() {
-    if (customElements.get("ha-entity-picker")) return;
+    if (customElements.get("ha-entity-picker") && customElements.get("ha-selector")) return;
 
     if (window.loadCardHelpers) {
       const helpers = await window.loadCardHelpers();
@@ -243,43 +243,6 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
 
   setConfig(config) {
     this._config = config;
-  }
-
-  // Récupère dynamiquement la liste des vues du tableau de bord courant
-  _getAvailableViews() {
-    try {
-      const lovelace = window.location.pathname;
-      const curConfig = window.fullyKiosk || document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main")?.shadowRoot?.querySelector("app-drawer-layout router-outlet")?.__queryParams;
-      
-      // Extraction des chemins depuis l'objet lovelace global si accessible, sinon liste de secours standard
-      if (this.hass && this.hass.panels) {
-        const views = [];
-        // Analyse de l'URL actuelle pour deviner le dashboard racine (ex: /lovelace/home)
-        const segments = window.location.pathname.split("/").filter(Boolean);
-        const dashPrefix = segments.length > 0 ? `/${segments[0]}` : "/lovelace";
-        
-        // Si l'objet lovelace est présent dans l'arbre dom ou via l'historique
-        const panelKey = segments[0] || "lovelace";
-        const panel = this.hass.panels[panelKey];
-        if (panel && panel.config && panel.config.views) {
-          panel.config.views.forEach((view, idx) => {
-            const path = view.path || `${idx}`;
-            views.push({
-              path: `${dashPrefix}/${path}`,
-              title: view.title || `Vue ${idx + 1}`
-            });
-          });
-        }
-        if (views.length > 0) return views;
-      }
-    } catch (e) {
-      console.error(e);
-    }
-    
-    // Valeurs par défaut si l'introspection automatique échoue
-    return [
-      { path: "/lovelace/0", title: "Accueil (0)" }
-    ];
   }
 
   _valueChanged(ev, key) {
@@ -341,7 +304,6 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
     const scriptKey = `${actionPrefix}_script`;
 
     const actionType = this._config[typeKey] || "toggle";
-    const availableViews = this._getAvailableViews();
 
     return html`
       <div class="action-group">
@@ -358,27 +320,25 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
 
         ${actionType === "navigate"
           ? html`
-              <div class="input-field">
-                <label>Navigation path (Select or type URL)</label>
-                <div style="display: flex; gap: 6px;">
-                  <select
-                    style="flex: 1;"
-                    .value=${this._config[pathKey] || ""}
-                    @change=${(e) => this._valueChanged(e, pathKey)}
-                  >
-                    <option value="" disabled selected>-- Choisir une vue --</option>
-                    ${availableViews.map(view => html`
-                      <option value=${view.path}>${view.title} (${view.path})</option>
-                    `)}
-                  </select>
-                </div>
-                <input
-                  style="margin-top: 4px;"
-                  type="text"
-                  placeholder="Ou saisir un chemin personnalisé (ex: /lovelace/home)"
-                  .value=${this._config[pathKey] || ""}
-                  @input=${(e) => this._valueChanged(e, pathKey)}
-                />
+              <div class="input-field" style="margin-top: 6px;">
+                <label>Navigation path</label>
+                ${customElements.get("ha-selector")
+                  ? html`
+                      <ha-selector
+                        .hass=${this.hass}
+                        .selector=${{ navigation: {} }}
+                        .value=${this._config[pathKey] || ""}
+                        @value-changed=${(e) => this._valueChanged(e, pathKey)}
+                      ></ha-selector>
+                    `
+                  : html`
+                      <input
+                        type="text"
+                        placeholder="/lovelace/home"
+                        .value=${this._config[pathKey] || ""}
+                        @input=${(e) => this._valueChanged(e, pathKey)}
+                      />
+                    `}
               </div>
             `
           : ""}
@@ -562,7 +522,8 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
         font-size: 14px;
       }
       ha-entity-picker,
-      ha-icon-picker {
+      ha-icon-picker,
+      ha-selector {
         width: 100%;
         display: block;
       }
