@@ -151,7 +151,7 @@
                @touchstart="${(e) => this._startTimer(e, 'main')}"
                @touchend="${(e) => this._stopTimer(e, 'main')}">
         
-        <div class="content">
+        <div class="content ${hasBadge ? 'has-badge' : ''}">
           <div class="inner">
             ${showIcon ? b`<ha-icon icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
             ${(showIcon && showName) ? b`<div class="spacer"></div>` : ""}
@@ -169,7 +169,7 @@
       .plooum-card {
         background: rgba(0, 0, 0, 0.35);
         border-radius: 20px;
-        padding: 4px 10px;
+        padding: 4px 8px; /* Réduit pour gratter de l'espace horizontal */
         box-sizing: border-box;
         box-shadow: none;
         border: none;
@@ -187,12 +187,17 @@
         height: 100%;
         width: 100%;
         box-sizing: border-box;
-        padding-right: 18px; /* Protège l'espace sous le badge */
+        /* Le padding de protection est ajouté dynamiquement */
+      }
+      .content.has-badge {
+        padding-right: 14px; /* Réservé UNIQUEMENT si un badge est présent */
       }
       .inner {
         display: flex;
         align-items: center;
-        max-width: 100%; /* Permet d'occuper tout l'espace avant de couper */
+        justify-content: center;
+        width: 100%; /* Prend toute la place pour étaler icône/texte sur les bords si besoin */
+        min-width: 0; /* Crucial pour que text-overflow fonctionne */
       }
       .inner ha-icon {
         --mdc-icon-size: 28px;
@@ -204,19 +209,17 @@
         flex-shrink: 0; /* L'icône ne rétrécit jamais */
       }
       .spacer {
-        /* flex: grow shrink basis */
-        flex: 0 9999 12px; 
-        /* C'est ce bloc qui va se compresser en priorité absolue (9999) */
-        min-width: 2px; /* L'espace minimum avant de commencer à couper le texte */
+        flex: 0 9999 10px; /* L'espace désiré idéalement (10px), se compresse en priorité absolue (9999) */
+        min-width: 4px; /* Dès qu'il ne reste que 4px d'espace, le texte commence à être tronqué */
       }
       .inner span {
         font-size: 14px;
         font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis; /* Coupe avec "..." en dernier recours */
-        flex-shrink: 1; /* Ne commence à rétrécir qu'une fois le spacer compressé */
-        min-width: 0; /* Indispensable pour que text-overflow fonctionne sous Flexbox */
+        text-overflow: ellipsis; /* Les "..." finaux */
+        flex: 0 1 auto; /* Autorise la compression une fois le spacer compressé au max */
+        min-width: 0;
       }
       .badge {
         position: absolute;
