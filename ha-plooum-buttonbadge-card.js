@@ -154,6 +154,7 @@
         <div class="content">
           <div class="inner">
             ${showIcon ? b`<ha-icon icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
+            ${(showIcon && showName) ? b`<div class="spacer"></div>` : ""}
             ${showName ? b`<span style="color: ${color};">${this.config.name}</span>` : ""}
           </div>
         </div>
@@ -182,7 +183,7 @@
       .content {
         display: flex;
         align-items: center;
-        justify-content: center; /* Centre le contenu globalement */
+        justify-content: center;
         height: 100%;
         width: 100%;
         box-sizing: border-box;
@@ -191,8 +192,7 @@
       .inner {
         display: flex;
         align-items: center;
-        max-width: 100%; /* S'il manque de place, il prend 100% et décale vers la gauche */
-        gap: 10px; /* Espace fixe entre l'icône et le texte */
+        max-width: 100%; /* Permet d'occuper tout l'espace avant de couper */
       }
       .inner ha-icon {
         --mdc-icon-size: 28px;
@@ -201,15 +201,22 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0;
+        flex-shrink: 0; /* L'icône ne rétrécit jamais */
+      }
+      .spacer {
+        /* flex: grow shrink basis */
+        flex: 0 9999 12px; 
+        /* C'est ce bloc qui va se compresser en priorité absolue (9999) */
+        min-width: 2px; /* L'espace minimum avant de commencer à couper le texte */
       }
       .inner span {
         font-size: 14px;
         font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis; /* Coupe avec "..." seulement s'il n'y a plus du tout de place */
-        flex-shrink: 1; /* Autorise le texte à rétrécir */
+        text-overflow: ellipsis; /* Coupe avec "..." en dernier recours */
+        flex-shrink: 1; /* Ne commence à rétrécir qu'une fois le spacer compressé */
+        min-width: 0; /* Indispensable pour que text-overflow fonctionne sous Flexbox */
       }
       .badge {
         position: absolute;
