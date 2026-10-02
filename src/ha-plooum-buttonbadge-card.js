@@ -93,7 +93,6 @@ class HaPlooumButtonBadgeCard extends LitElement {
 
     const showIcon = !!this.config.icon;
     const showName = !!this.config.name;
-    const justifyContent = (showIcon && showName) ? "flex-start" : "center";
 
     // -- Badge Calculations --
     const hasBadge = !!(this.config.badge_entity || this.config.badge_icon);
@@ -125,9 +124,11 @@ class HaPlooumButtonBadgeCard extends LitElement {
                @touchstart="${(e) => this._startTimer(e, 'main')}"
                @touchend="${(e) => this._stopTimer(e, 'main')}">
         
-        <div class="content" style="justify-content: ${justifyContent};">
-          ${showIcon ? html`<ha-icon icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
-          ${showName ? html`<span style="color: ${color};">${this.config.name}</span>` : ""}
+        <div class="content">
+          <div class="inner">
+            ${showIcon ? html`<ha-icon icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
+            ${showName ? html`<span style="color: ${color};">${this.config.name}</span>` : ""}
+          </div>
         </div>
 
         ${badgeHtml}
@@ -140,7 +141,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
       .plooum-card {
         background: rgba(0, 0, 0, 0.35);
         border-radius: 20px;
-        padding: 4px 10px 4px 6px;
+        padding: 4px 10px;
+        box-sizing: border-box;
         box-shadow: none;
         border: none;
         position: relative;
@@ -153,14 +155,19 @@ class HaPlooumButtonBadgeCard extends LitElement {
       .content {
         display: flex;
         align-items: center;
+        justify-content: center; /* Centre le contenu globalement */
         height: 100%;
         width: 100%;
-        gap: 12px; /* Espace fixe et élégant entre l'icône et le texte */
         box-sizing: border-box;
-        padding-right: 20px; /* Evite que le texte ne touche la zone du badge */
-        overflow: hidden;
+        padding-right: 18px; /* Protège l'espace sous le badge */
       }
-      .content ha-icon {
+      .inner {
+        display: flex;
+        align-items: center;
+        max-width: 100%; /* S'il manque de place, il prend 100% et décale vers la gauche */
+        gap: 10px; /* Espace fixe entre l'icône et le texte */
+      }
+      .inner ha-icon {
         --mdc-icon-size: 28px;
         width: 28px;
         height: 28px;
@@ -169,12 +176,13 @@ class HaPlooumButtonBadgeCard extends LitElement {
         justify-content: center;
         flex-shrink: 0;
       }
-      .content span {
+      .inner span {
         font-size: 14px;
         font-weight: 700;
         white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis; /* Troncature responsive avec "..." */
+        text-overflow: ellipsis; /* Coupe avec "..." seulement s'il n'y a plus du tout de place */
+        flex-shrink: 1; /* Autorise le texte à rétrécir */
       }
       .badge {
         position: absolute;
@@ -190,7 +198,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       .badge ha-icon {
-        --mdc-icon-size: 20px; /* Légèrement plus gros */
+        --mdc-icon-size: 20px;
         width: 20px;
         height: 20px;
         display: flex;
@@ -257,7 +265,6 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
     );
   }
 
-  // --- Hybrid Color Picker (Color tool + Text input) ---
   _renderColorPicker(labelTitle, key, defaultColor) {
     const val = this._config[key] !== undefined ? this._config[key] : defaultColor;
     
