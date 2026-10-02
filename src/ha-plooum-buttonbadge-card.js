@@ -24,6 +24,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
       icon_size: "24px",
       badge_icon_size: "20px",
       text_padding_left: "24px",
+      icon_padding_left: "-4px",
+      icon_align: "flex-start",
       active_color: "#FFC107",
       inactive_color: "#FFFFFF",
       tap_action_type: "toggle",
@@ -101,6 +103,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
     const iconSize = this.config.icon_size || "24px";
     const badgeIconSize = this.config.badge_icon_size || "20px";
     const textPaddingLeft = this.config.text_padding_left || "24px";
+    const iconPaddingLeft = this.config.icon_padding_left !== undefined ? this.config.icon_padding_left : "-4px";
+    const iconAlign = this.config.icon_align || "flex-start";
 
     // -- Badge Calculations --
     const hasBadge = !!(this.config.badge_entity || this.config.badge_icon);
@@ -132,8 +136,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
                @touchstart="${(e) => this._startTimer(e, 'main')}"
                @touchend="${(e) => this._stopTimer(e, 'main')}">
         
-        <div class="content">
-          ${showIcon ? html`<ha-icon class="main-icon" icon="${this.config.icon}" style="color: ${color}; --mdc-icon-size: ${iconSize}; width: ${iconSize}; height: ${iconSize};"></ha-icon>` : ""}
+        <div class="content" style="justify-content: ${iconAlign};">
+          ${showIcon ? html`<ha-icon class="main-icon" icon="${this.config.icon}" style="color: ${color}; --mdc-icon-size: ${iconSize}; width: ${iconSize}; height: ${iconSize}; margin-left: ${iconPaddingLeft};"></ha-icon>` : ""}
           ${showName ? html`<span class="main-text" style="color: ${color}; font-size: ${fontSize}; padding-left: ${textPaddingLeft};">${this.config.name}</span>` : ""}
         </div>
 
@@ -171,7 +175,6 @@ class HaPlooumButtonBadgeCard extends LitElement {
       .main-icon {
         flex-shrink: 0;
         z-index: 1;
-        margin-left: -4px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -396,6 +399,18 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
             />
           </div>
           <div class="input-field" style="flex: 1;">
+            <label>Text left padding</label>
+            <input
+              type="text"
+              placeholder="24px"
+              .value=${this._config.text_padding_left || "24px"}
+              @input=${(e) => this._valueChanged(e, "text_padding_left")}
+            />
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <div class="input-field" style="flex: 1;">
             <label>Icon size</label>
             <input
               type="text"
@@ -404,16 +419,26 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
               @input=${(e) => this._valueChanged(e, "icon_size")}
             />
           </div>
+          <div class="input-field" style="flex: 1;">
+            <label>Icon left offset</label>
+            <input
+              type="text"
+              placeholder="-4px"
+              .value=${this._config.icon_padding_left !== undefined ? this._config.icon_padding_left : "-4px"}
+              @input=${(e) => this._valueChanged(e, "icon_padding_left")}
+            />
+          </div>
         </div>
 
         <div class="input-field">
-          <label>Text left padding (Offset)</label>
-          <input
-            type="text"
-            placeholder="24px"
-            .value=${this._config.text_padding_left || "24px"}
-            @input=${(e) => this._valueChanged(e, "text_padding_left")}
-          />
+          <label>Icon alignment</label>
+          <select
+            .value=${this._config.icon_align || "flex-start"}
+            @change=${(e) => this._valueChanged(e, "icon_align")}
+          >
+            <option value="flex-start">Left (Default)</option>
+            <option value="center">Center</option>
+          </select>
         </div>
 
         <ha-icon-picker

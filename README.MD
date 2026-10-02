@@ -60,6 +60,8 @@ resources:
 | `icon` | string | `""` | The icon displayed on the button (e.g., `mdi:lightbulb`). |
 | `font_size` | string | `"13px"` | Font size of the button text (e.g., `13px`, `1rem`). |
 | `icon_size` | string | `"24px"` | Size of the main button icon. |
+| `icon_padding_left` | string | `"-4px"` | Left offset/padding for the main icon. |
+| `icon_align` | string | `"flex-start"` | Alignment of the icon (`flex-start` for left, `center` for centering, especially useful when there is no text). |
 | `text_padding_left` | string | `"24px"` | Left padding/offset for the button text to avoid overlapping the icon. |
 | `active_color` | string | `"#FFC107"` | Color of the icon and text when the entity is active. |
 | `inactive_color` | string | `"#FFFFFF"` | Color of the icon and text when the entity is inactive or unavailable. |
