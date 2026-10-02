@@ -28,7 +28,7 @@
    */const s=globalThis;class i extends y$1{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0;}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const r=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=D(r,this.renderRoot,this.renderOptions);}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(true);}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(false);}render(){return E}}i._$litElement$=true,i["finalized"]=true,s.litElementHydrateSupport?.({LitElement:i});const o=s.litElementPolyfillSupport;o?.({LitElement:i});(s.litElementVersions??=[]).push("4.2.2");
 
   /* ==========================================================================
-     CARTE PRINCIPALE : ha-plooum-buttonbadge-card
+     MAIN CARD : ha-plooum-buttonbadge-card
      ========================================================================== */
   class HaPlooumButtonBadgeCard extends i {
     static get properties() {
@@ -45,7 +45,7 @@
     static getStubConfig() {
       return {
         entity: "",
-        name: "Mon Bouton",
+        name: "My Button",
         icon: "mdi:lightbulb",
         active_color: "#FFC107",
         inactive_color: "#FFFFFF",
@@ -58,12 +58,12 @@
 
     setConfig(config) {
       if (!config) {
-        throw new Error("Configuration invalide");
+        throw new Error("Invalid configuration");
       }
       this.config = { ...config };
     }
 
-    // --- Gestionnaire d'actions ---
+    // --- Action Handler ---
     _handleAction(actionPrefix, defaultEntity) {
       const actionType = this.config[`${actionPrefix}_type`] || "toggle";
 
@@ -87,7 +87,7 @@
       }
     }
 
-    // --- Événements Clic / Clic Long ---
+    // --- Tap / Hold Events ---
     _startTimer(e, target) {
       this.longPress = false;
       this.timer = setTimeout(() => {
@@ -110,7 +110,7 @@
     render() {
       if (!this.config || !this.hass) return b``;
 
-      // -- Calculs Bouton Principal --
+      // -- Main Button Calculations --
       const stateObj = this.config.entity ? this.hass.states[this.config.entity] : undefined;
       const isActive = stateObj && stateObj.state !== "off" && stateObj.state !== "unavailable";
       
@@ -122,7 +122,7 @@
       const showName = !!this.config.name;
       const justifyContent = (showIcon && showName) ? "flex-start" : "center";
 
-      // -- Calculs Badge --
+      // -- Badge Calculations --
       const hasBadge = !!(this.config.badge_entity || this.config.badge_icon);
       let badgeHtml = b``;
 
@@ -182,7 +182,10 @@
         align-items: center;
         height: 100%;
         width: 100%;
-        gap: 10px;
+        gap: 12px; /* Espace fixe et élégant entre l'icône et le texte */
+        box-sizing: border-box;
+        padding-right: 20px; /* Evite que le texte ne touche la zone du badge */
+        overflow: hidden;
       }
       .content ha-icon {
         --mdc-icon-size: 28px;
@@ -196,8 +199,9 @@
       .content span {
         font-size: 14px;
         font-weight: 700;
-        text-align: center;
-        flex-grow: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis; /* Troncature responsive avec "..." */
       }
       .badge {
         position: absolute;
@@ -213,9 +217,9 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       .badge ha-icon {
-        --mdc-icon-size: 16px;
-        width: 16px;
-        height: 16px;
+        --mdc-icon-size: 20px; /* Légèrement plus gros */
+        width: 20px;
+        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -226,7 +230,7 @@
   }
 
   /* ==========================================================================
-     ÉDITEUR DE CARTE
+     CARD EDITOR
      ========================================================================== */
   class HaPlooumButtonBadgeCardEditor extends i {
     static get properties() {
@@ -280,11 +284,10 @@
       );
     }
 
-    // --- Composant hyrbide Sélecteur de couleur + Champ texte ---
+    // --- Hybrid Color Picker (Color tool + Text input) ---
     _renderColorPicker(labelTitle, key, defaultColor) {
       const val = this._config[key] !== undefined ? this._config[key] : defaultColor;
       
-      // Le sélecteur <input type="color"> natif de HTML exige un format hex strict à 6 caractères (#RRGGBB).
       let hexColor = "#000000";
       if (val && val.match(/^#[0-9A-Fa-f]{6}$/)) {
         hexColor = val;
@@ -326,16 +329,16 @@
           .value=${actionType}
           @change=${(e) => this._valueChanged(e, typeKey)}
         >
-          <option value="toggle">Toggle (Inverser entité)</option>
-          <option value="navigate">Naviguer</option>
-          <option value="execute_script">Exécuter un script</option>
-          <option value="none">Aucune action</option>
+          <option value="toggle">Toggle</option>
+          <option value="navigate">Navigate</option>
+          <option value="execute_script">Execute a script</option>
+          <option value="none">No action</option>
         </select>
 
         ${actionType === "navigate"
           ? b`
               <div class="input-field">
-                <label>Chemin de navigation (ex: /lovelace/entree)</label>
+                <label>Navigation path (e.g., /lovelace/home)</label>
                 <input
                   type="text"
                   .value=${this._config[pathKey] || ""}
@@ -348,7 +351,7 @@
         ${actionType === "execute_script"
           ? b`
               <ha-entity-picker
-                .label=${"Script à exécuter"}
+                .label=${"Script to execute"}
                 .hass=${this.hass}
                 .value=${this._config[scriptKey] || ""}
                 .includeDomains=${["script"]}
@@ -366,10 +369,10 @@
 
       return b`
       <div class="card-config">
-        <h3>Bouton Principal</h3>
+        <h3>Main Button</h3>
         
         <ha-entity-picker
-          .label=${"Entité principale"}
+          .label=${"Main entity"}
           .hass=${this.hass}
           .value=${this._config.entity || ""}
           @value-changed=${(e) => this._valueChanged(e, "entity")}
@@ -377,34 +380,34 @@
         ></ha-entity-picker>
 
         <div class="input-field">
-          <label>Texte du bouton</label>
+          <label>Button text</label>
           <input
             type="text"
-            placeholder="Nom affiché sur le bouton"
+            placeholder="Name displayed on the button"
             .value=${this._config.name || ""}
             @input=${(e) => this._valueChanged(e, "name")}
           />
         </div>
 
         <ha-icon-picker
-          .label=${"Icône principale"}
+          .label=${"Main icon"}
           .hass=${this.hass}
           .value=${this._config.icon || ""}
           @value-changed=${(e) => this._valueChanged(e, "icon")}
         ></ha-icon-picker>
 
-        ${this._renderColorPicker("Couleur actif", "active_color", "#FFC107")}
-        ${this._renderColorPicker("Couleur inactif", "inactive_color", "#FFFFFF")}
+        ${this._renderColorPicker("Active color", "active_color", "#FFC107")}
+        ${this._renderColorPicker("Inactive color", "inactive_color", "#FFFFFF")}
 
-        ${this._renderActionConfig("tap_action", "Action au clic (Bouton)")}
-        ${this._renderActionConfig("hold_action", "Action clic long (Bouton)")}
+        ${this._renderActionConfig("tap_action", "Tap action (Main)")}
+        ${this._renderActionConfig("hold_action", "Hold action (Main)")}
 
         <hr />
 
-        <h3>Badge (Optionnel)</h3>
+        <h3>Badge (Optional)</h3>
 
         <ha-entity-picker
-          .label=${"Entité du badge"}
+          .label=${"Badge entity"}
           .hass=${this.hass}
           .value=${this._config.badge_entity || ""}
           @value-changed=${(e) => this._valueChanged(e, "badge_entity")}
@@ -412,17 +415,17 @@
         ></ha-entity-picker>
 
         <ha-icon-picker
-          .label=${"Icône du badge"}
+          .label=${"Badge icon"}
           .hass=${this.hass}
           .value=${this._config.badge_icon || ""}
           @value-changed=${(e) => this._valueChanged(e, "badge_icon")}
         ></ha-icon-picker>
 
-        ${this._renderColorPicker("Couleur fond badge actif", "badge_active_color", "#FFC107")}
-        ${this._renderColorPicker("Couleur fond badge inactif", "badge_inactive_color", "rgba(255, 255, 255, 0.25)")}
+        ${this._renderColorPicker("Badge active background color", "badge_active_color", "#FFC107")}
+        ${this._renderColorPicker("Badge inactive background color", "badge_inactive_color", "rgba(255, 255, 255, 0.25)")}
 
-        ${this._renderActionConfig("badge_tap_action", "Action au clic (Badge)")}
-        ${this._renderActionConfig("badge_hold_action", "Action clic long (Badge)")}
+        ${this._renderActionConfig("badge_tap_action", "Tap action (Badge)")}
+        ${this._renderActionConfig("badge_hold_action", "Hold action (Badge)")}
       </div>
     `;
     }
@@ -455,7 +458,6 @@
         color: var(--secondary-text-color);
       }
       
-      /* Styles pour le groupe de saisie de couleur */
       .color-input-group {
         display: flex;
         align-items: center;
@@ -516,7 +518,7 @@
   }
 
   /* ==========================================================================
-     ENREGISTREMENTS HOME ASSISTANT
+     HOME ASSISTANT REGISTRATION
      ========================================================================== */
   if (!customElements.get('ha-plooum-buttonbadge-card')) {
     customElements.define('ha-plooum-buttonbadge-card', HaPlooumButtonBadgeCard);
