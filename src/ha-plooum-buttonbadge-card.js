@@ -20,8 +20,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
       entity: "",
       name: "Mon Bouton",
       icon: "mdi:lightbulb",
-      active_color: "#fff176",
-      inactive_color: "#ffffff",
+      active_color: "#FFC107",
+      inactive_color: "#FFFFFF",
       tap_action_type: "toggle",
       hold_action_type: "none",
       badge_tap_action_type: "toggle",
@@ -88,8 +88,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
     const isActive = stateObj && stateObj.state !== "off" && stateObj.state !== "unavailable";
     
     const color = isActive 
-      ? (this.config.active_color || "#fff176") 
-      : (this.config.inactive_color || "#ffffff");
+      ? (this.config.active_color || "#FFC107") 
+      : (this.config.inactive_color || "#FFFFFF");
 
     const showIcon = !!this.config.icon;
     const showName = !!this.config.name;
@@ -103,7 +103,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
       const badgeStateObj = this.config.badge_entity ? this.hass.states[this.config.badge_entity] : undefined;
       const isBadgeActive = badgeStateObj && badgeStateObj.state !== "off" && badgeStateObj.state !== "unavailable";
       const badgeBgColor = isBadgeActive 
-        ? (this.config.badge_active_color || "#ffa726") 
+        ? (this.config.badge_active_color || "#FFC107") 
         : (this.config.badge_inactive_color || "rgba(255, 255, 255, 0.25)");
 
       badgeHtml = html`
@@ -199,7 +199,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
 }
 
 /* ==========================================================================
-   ÉDITEUR DE CARTE (CORRIGÉ & COMPATIBLE)
+   ÉDITEUR DE CARTE
    ========================================================================== */
 class HaPlooumButtonBadgeCardEditor extends LitElement {
   static get properties() {
@@ -242,10 +242,7 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
 
     if (this._config[key] === newValue) return;
 
-    const newConfig = {
-      ...this._config,
-      [key]: newValue,
-    };
+    const newConfig = { ...this._config, [key]: newValue };
 
     this.dispatchEvent(
       new CustomEvent("config-changed", {
@@ -254,6 +251,38 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
         composed: true,
       })
     );
+  }
+
+  // --- Composant hyrbide Sélecteur de couleur + Champ texte ---
+  _renderColorPicker(labelTitle, key, defaultColor) {
+    const val = this._config[key] !== undefined ? this._config[key] : defaultColor;
+    
+    // Le sélecteur <input type="color"> natif de HTML exige un format hex strict à 6 caractères (#RRGGBB).
+    let hexColor = "#000000";
+    if (val && val.match(/^#[0-9A-Fa-f]{6}$/)) {
+      hexColor = val;
+    } else if (val && val.match(/^#[0-9A-Fa-f]{3}$/)) {
+      hexColor = "#" + val[1] + val[1] + val[2] + val[2] + val[3] + val[3];
+    }
+
+    return html`
+      <div class="input-field">
+        <label>${labelTitle}</label>
+        <div class="color-input-group">
+          <input
+            type="color"
+            .value=${hexColor}
+            @input=${(e) => this._valueChanged(e, key)}
+          />
+          <input
+            type="text"
+            .value=${val}
+            placeholder=${defaultColor}
+            @input=${(e) => this._valueChanged(e, key)}
+          />
+        </div>
+      </div>
+    `;
   }
 
   _renderActionConfig(actionPrefix, labelTitle) {
@@ -337,23 +366,8 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
           @value-changed=${(e) => this._valueChanged(e, "icon")}
         ></ha-icon-picker>
 
-        <div class="input-field">
-          <label>Couleur actif (ex: #fff176)</label>
-          <input
-            type="text"
-            .value=${this._config.active_color || ""}
-            @input=${(e) => this._valueChanged(e, "active_color")}
-          />
-        </div>
-
-        <div class="input-field">
-          <label>Couleur inactif (ex: #ffffff)</label>
-          <input
-            type="text"
-            .value=${this._config.inactive_color || ""}
-            @input=${(e) => this._valueChanged(e, "inactive_color")}
-          />
-        </div>
+        ${this._renderColorPicker("Couleur actif", "active_color", "#FFC107")}
+        ${this._renderColorPicker("Couleur inactif", "inactive_color", "#FFFFFF")}
 
         ${this._renderActionConfig("tap_action", "Action au clic (Bouton)")}
         ${this._renderActionConfig("hold_action", "Action clic long (Bouton)")}
@@ -377,23 +391,8 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
           @value-changed=${(e) => this._valueChanged(e, "badge_icon")}
         ></ha-icon-picker>
 
-        <div class="input-field">
-          <label>Couleur fond badge actif (ex: #ffa726)</label>
-          <input
-            type="text"
-            .value=${this._config.badge_active_color || ""}
-            @input=${(e) => this._valueChanged(e, "badge_active_color")}
-          />
-        </div>
-
-        <div class="input-field">
-          <label>Couleur fond badge inactif</label>
-          <input
-            type="text"
-            .value=${this._config.badge_inactive_color || ""}
-            @input=${(e) => this._valueChanged(e, "badge_inactive_color")}
-          />
-        </div>
+        ${this._renderColorPicker("Couleur fond badge actif", "badge_active_color", "#FFC107")}
+        ${this._renderColorPicker("Couleur fond badge inactif", "badge_inactive_color", "rgba(255, 255, 255, 0.25)")}
 
         ${this._renderActionConfig("badge_tap_action", "Action au clic (Badge)")}
         ${this._renderActionConfig("badge_hold_action", "Action clic long (Badge)")}
@@ -428,6 +427,34 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
         font-size: 0.85em;
         color: var(--secondary-text-color);
       }
+      
+      /* Styles pour le groupe de saisie de couleur */
+      .color-input-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .color-input-group input[type="color"] {
+        -webkit-appearance: none;
+        border: none;
+        width: 38px;
+        height: 38px;
+        border-radius: 4px;
+        cursor: pointer;
+        padding: 0;
+        background: none;
+      }
+      .color-input-group input[type="color"]::-webkit-color-swatch-wrapper {
+        padding: 0;
+      }
+      .color-input-group input[type="color"]::-webkit-color-swatch {
+        border: 1px solid var(--divider-color, #ccc);
+        border-radius: 4px;
+      }
+      .color-input-group input[type="text"] {
+        flex-grow: 1;
+      }
+
       input[type="text"],
       select {
         width: 100%;
