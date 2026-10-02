@@ -21,6 +21,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
       name: "My Button",
       icon: "mdi:lightbulb",
       font_size: "13px",
+      icon_size: "24px",
+      badge_icon_size: "20px",
       active_color: "#FFC107",
       inactive_color: "#FFFFFF",
       tap_action_type: "toggle",
@@ -95,6 +97,8 @@ class HaPlooumButtonBadgeCard extends LitElement {
     const showIcon = !!this.config.icon;
     const showName = !!this.config.name;
     const fontSize = this.config.font_size || "13px";
+    const iconSize = this.config.icon_size || "24px";
+    const badgeIconSize = this.config.badge_icon_size || "20px";
 
     // -- Badge Calculations --
     const hasBadge = !!(this.config.badge_entity || this.config.badge_icon);
@@ -114,7 +118,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
              @mouseup="${(e) => { e.stopPropagation(); this._stopTimer(e, 'badge'); }}"
              @touchstart="${(e) => { e.stopPropagation(); this._startTimer(e, 'badge'); }}"
              @touchend="${(e) => { e.stopPropagation(); this._stopTimer(e, 'badge'); }}">
-          ${this.config.badge_icon ? html`<ha-icon icon="${this.config.badge_icon}"></ha-icon>` : ""}
+          ${this.config.badge_icon ? html`<ha-icon icon="${this.config.badge_icon}" style="--mdc-icon-size: ${badgeIconSize}; width: ${badgeIconSize}; height: ${badgeIconSize};"></ha-icon>` : ""}
         </div>
       `;
     }
@@ -127,7 +131,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
                @touchend="${(e) => this._stopTimer(e, 'main')}">
         
         <div class="content">
-          ${showIcon ? html`<ha-icon class="main-icon" icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
+          ${showIcon ? html`<ha-icon class="main-icon" icon="${this.config.icon}" style="color: ${color}; --mdc-icon-size: ${iconSize}; width: ${iconSize}; height: ${iconSize};"></ha-icon>` : ""}
           ${showName ? html`<span class="main-text" style="color: ${color}; font-size: ${fontSize};">${this.config.name}</span>` : ""}
         </div>
 
@@ -163,9 +167,6 @@ class HaPlooumButtonBadgeCard extends LitElement {
         align-items: center;
       }
       .main-icon {
-        --mdc-icon-size: 24px;
-        width: 24px;
-        height: 24px;
         flex-shrink: 0;
         z-index: 1;
         margin-left: -4px;
@@ -203,9 +204,6 @@ class HaPlooumButtonBadgeCard extends LitElement {
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       .badge ha-icon {
-        --mdc-icon-size: 20px;
-        width: 20px;
-        height: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -245,6 +243,43 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
 
   setConfig(config) {
     this._config = config;
+  }
+
+  // Récupère dynamiquement la liste des vues du tableau de bord courant
+  _getAvailableViews() {
+    try {
+      const lovelace = window.location.pathname;
+      const curConfig = window.fullyKiosk || document.querySelector("home-assistant")?.shadowRoot?.querySelector("home-assistant-main")?.shadowRoot?.querySelector("app-drawer-layout router-outlet")?.__queryParams;
+      
+      // Extraction des chemins depuis l'objet lovelace global si accessible, sinon liste de secours standard
+      if (this.hass && this.hass.panels) {
+        const views = [];
+        // Analyse de l'URL actuelle pour deviner le dashboard racine (ex: /lovelace/home)
+        const segments = window.location.pathname.split("/").filter(Boolean);
+        const dashPrefix = segments.length > 0 ? `/${segments[0]}` : "/lovelace";
+        
+        // Si l'objet lovelace est présent dans l'arbre dom ou via l'historique
+        const panelKey = segments[0] || "lovelace";
+        const panel = this.hass.panels[panelKey];
+        if (panel && panel.config && panel.config.views) {
+          panel.config.views.forEach((view, idx) => {
+            const path = view.path || `${idx}`;
+            views.push({
+              path: `${dashPrefix}/${path}`,
+              title: view.title || `Vue ${idx + 1}`
+            });
+          });
+        }
+        if (views.length > 0) return views;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    
+    // Valeurs par défaut si l'introspection automatique échoue
+    return [
+      { path: "/lovelace/0", title: "Accueil (0)" }
+    ];
   }
 
   _valueChanged(ev, key) {
@@ -306,6 +341,7 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
     const scriptKey = `${actionPrefix}_script`;
 
     const actionType = this._config[typeKey] || "toggle";
+    const availableViews = this._getAvailableViews();
 
     return html`
       <div class="action-group">
@@ -323,9 +359,23 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
         ${actionType === "navigate"
           ? html`
               <div class="input-field">
-                <label>Navigation path (e.g., /lovelace/home)</label>
+                <label>Navigation path (Select or type URL)</label>
+                <div style="display: flex; gap: 6px;">
+                  <select
+                    style="flex: 1;"
+                    .value=${this._config[pathKey] || ""}
+                    @change=${(e) => this._valueChanged(e, pathKey)}
+                  >
+                    <option value="" disabled selected>-- Choisir une vue --</option>
+                    ${availableViews.map(view => html`
+                      <option value=${view.path}>${view.title} (${view.path})</option>
+                    `)}
+                  </select>
+                </div>
                 <input
+                  style="margin-top: 4px;"
                   type="text"
+                  placeholder="Ou saisir un chemin personnalisé (ex: /lovelace/home)"
                   .value=${this._config[pathKey] || ""}
                   @input=${(e) => this._valueChanged(e, pathKey)}
                 />
@@ -374,14 +424,25 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
           />
         </div>
 
-        <div class="input-field">
-          <label>Font size (e.g., 13px, 1rem)</label>
-          <input
-            type="text"
-            placeholder="13px"
-            .value=${this._config.font_size || "13px"}
-            @input=${(e) => this._valueChanged(e, "font_size")}
-          />
+        <div style="display: flex; gap: 8px;">
+          <div class="input-field" style="flex: 1;">
+            <label>Font size</label>
+            <input
+              type="text"
+              placeholder="13px"
+              .value=${this._config.font_size || "13px"}
+              @input=${(e) => this._valueChanged(e, "font_size")}
+            />
+          </div>
+          <div class="input-field" style="flex: 1;">
+            <label>Icon size</label>
+            <input
+              type="text"
+              placeholder="24px"
+              .value=${this._config.icon_size || "24px"}
+              @input=${(e) => this._valueChanged(e, "icon_size")}
+            />
+          </div>
         </div>
 
         <ha-icon-picker
@@ -408,6 +469,16 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
           @value-changed=${(e) => this._valueChanged(e, "badge_entity")}
           allow-custom-entity
         ></ha-entity-picker>
+
+        <div class="input-field">
+          <label>Badge icon size</label>
+          <input
+            type="text"
+            placeholder="20px"
+            .value=${this._config.badge_icon_size || "20px"}
+            @input=${(e) => this._valueChanged(e, "badge_icon_size")}
+          />
+        </div>
 
         <ha-icon-picker
           .label=${"Badge icon"}
