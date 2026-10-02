@@ -1,6 +1,6 @@
 {
   "name": "ha-plooum-buttonbadge-card",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Custom card for combining a button and a badge in Home Assistant Lovelace UI.",
   "main": "src/ha-plooum-buttonbadge-card.js",
   "scripts": {
