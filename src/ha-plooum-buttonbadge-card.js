@@ -139,12 +139,12 @@ class HaPlooumButtonBadgeCard extends LitElement {
       .plooum-card {
         background: rgba(0, 0, 0, 0.35);
         border-radius: 20px;
-        padding: 6px 8px; /* Légèrement plus d'espace vertical pour le multiligne */
+        padding: 6px 8px;
         box-sizing: border-box;
         box-shadow: none;
         border: none;
         position: relative;
-        min-height: 56px; /* Devient une hauteur minimale pour s'agrandir si le texte fait plusieurs lignes */
+        min-height: 56px;
         overflow: visible;
         cursor: pointer;
         user-select: none;
@@ -155,10 +155,10 @@ class HaPlooumButtonBadgeCard extends LitElement {
       }
       .content {
         position: relative;
-        height: 100%;
         width: 100%;
+        min-height: 44px;
         display: flex;
-        align-items: center;
+        align-items: center; /* Centre verticalement l'icône de façon fixe */
       }
       .main-icon {
         --mdc-icon-size: 28px;
@@ -167,17 +167,22 @@ class HaPlooumButtonBadgeCard extends LitElement {
         flex-shrink: 0;
         z-index: 1;
         margin-left: -4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .main-text {
         position: absolute;
-        left: 0;
-        right: 0;
+        inset: 0; /* Occupe tout l'espace du conteneur parent */
+        display: flex;
+        align-items: center; /* Centre verticalement le texte (1 ligne ou multiligne) */
+        justify-content: center; /* Centre horizontalement */
         text-align: center;
-        font-size: 13px; /* Légèrement réduit pour mieux passer sur plusieurs lignes */
+        font-size: 13px;
         line-height: 1.2;
         font-weight: 700;
-        white-space: normal; /* Autorise le retour à la ligne */
-        word-break: break-word; /* Coupe proprement les mots trop longs si nécessaire */
+        white-space: normal;
+        word-break: break-word;
         z-index: 2;
         pointer-events: none;
         padding-left: 24px;
