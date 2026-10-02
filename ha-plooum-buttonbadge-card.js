@@ -44,12 +44,15 @@
 
     static getStubConfig() {
       return {
-        entity: "light.mon_entite",
+        entity: "",
         name: "Mon Bouton",
         icon: "mdi:lightbulb",
         active_color: "#fff176",
         inactive_color: "#ffffff",
-        tap_action: { action: "toggle" }
+        tap_action_type: "toggle",
+        hold_action_type: "none",
+        badge_tap_action_type: "toggle",
+        badge_hold_action_type: "none",
       };
     }
 
@@ -61,42 +64,46 @@
     }
 
     // --- Gestionnaire d'actions ---
-    _handleAction(actionConfig, entityId) {
-      if (!actionConfig) return;
+    _handleAction(actionPrefix, defaultEntity) {
+      const actionType = this.config[`${actionPrefix}_type`] || "toggle";
 
-      const action = actionConfig.action;
-      
-      if (action === "toggle" && entityId) {
-        const domain = entityId.split(".")[0];
-        this.hass.callService(domain, "toggle", { entity_id: entityId });
+      if (actionType === "toggle" && defaultEntity) {
+        const domain = defaultEntity.split(".")[0];
+        this.hass.callService(domain, "toggle", { entity_id: defaultEntity });
       } 
-      else if (action === "navigate" && actionConfig.navigation_path) {
-        window.history.pushState(null, "", actionConfig.navigation_path);
-        window.dispatchEvent(new CustomEvent("location-changed"));
+      else if (actionType === "navigate") {
+        const path = this.config[`${actionPrefix}_path`];
+        if (path) {
+          window.history.pushState(null, "", path);
+          window.dispatchEvent(new CustomEvent("location-changed"));
+        }
       } 
-      else if (action === "execute_script" && actionConfig.script) {
-        const scriptId = actionConfig.script.replace("script.", "");
-        this.hass.callService("script", scriptId);
+      else if (actionType === "execute_script") {
+        const scriptEntity = this.config[`${actionPrefix}_script`];
+        if (scriptEntity) {
+          const scriptId = scriptEntity.replace("script.", "");
+          this.hass.callService("script", scriptId);
+        }
       }
     }
 
     // --- Événements Clic / Clic Long ---
-    _startTimer(e, actionType) {
+    _startTimer(e, target) {
       this.longPress = false;
       this.timer = setTimeout(() => {
         this.longPress = true;
-        const actionConfig = actionType === 'badge' ? this.config.badge_hold_action : this.config.hold_action;
-        const entity = actionType === 'badge' ? this.config.badge_entity : this.config.entity;
-        this._handleAction(actionConfig, entity);
-      }, 500); // 500ms pour déclencher un clic long
+        const actionPrefix = target === 'badge' ? 'badge_hold_action' : 'hold_action';
+        const entity = target === 'badge' ? this.config.badge_entity : this.config.entity;
+        this._handleAction(actionPrefix, entity);
+      }, 500);
     }
 
-    _stopTimer(e, actionType) {
+    _stopTimer(e, target) {
       clearTimeout(this.timer);
       if (!this.longPress) {
-        const actionConfig = actionType === 'badge' ? this.config.badge_tap_action : this.config.tap_action;
-        const entity = actionType === 'badge' ? this.config.badge_entity : this.config.entity;
-        this._handleAction(actionConfig, entity);
+        const actionPrefix = target === 'badge' ? 'badge_tap_action' : 'tap_action';
+        const entity = target === 'badge' ? this.config.badge_entity : this.config.entity;
+        this._handleAction(actionPrefix, entity);
       }
     }
 
@@ -111,14 +118,12 @@
         ? (this.config.active_color || "#fff176") 
         : (this.config.inactive_color || "#ffffff");
 
-      const showIcon = this.config.icon && this.config.icon !== "";
-      const showName = this.config.name && this.config.name !== "";
-      
-      // Détermination de l'alignement
+      const showIcon = !!this.config.icon;
+      const showName = !!this.config.name;
       const justifyContent = (showIcon && showName) ? "flex-start" : "center";
 
       // -- Calculs Badge --
-      const hasBadge = this.config.badge_entity || this.config.badge_icon;
+      const hasBadge = !!(this.config.badge_entity || this.config.badge_icon);
       let badgeHtml = b``;
 
       if (hasBadge) {
@@ -213,7 +218,7 @@
   }
 
   /* ==========================================================================
-     ÉDITEUR VISUEL : ha-plooum-buttonbadge-card-editor
+     ÉDITEUR DE CARTE (UTILISANT LES COMPOSANTS NATIFS HA)
      ========================================================================== */
   class HaPlooumButtonBadgeCardEditor extends i {
     static get properties() {
@@ -229,49 +234,79 @@
 
     _valueChanged(ev) {
       if (!this._config || !this.hass) return;
+      
       const target = ev.target;
-      const path = target.dataset.path.split(".");
-      
-      let newValue = target.value;
-      // Gérer les cas où le champ est vidé
-      if (newValue === "" && target.tagName !== "SELECT") newValue = undefined;
+      const configValue = target.configValue;
+      if (!configValue) return;
 
-      const newConfig = { ...this._config };
-      
-      if (path.length === 1) {
-        newConfig[path[0]] = newValue;
-      } else if (path.length === 2) {
-        newConfig[path[0]] = { ...newConfig[path[0]], [path[1]]: newValue };
+      let newValue;
+      if (ev.detail && ev.detail.value !== undefined) {
+        newValue = ev.detail.value;
+      } else if (target.value !== undefined) {
+        newValue = target.value;
       }
 
-      // Déclencher l'événement pour Home Assistant
-      const event = new CustomEvent("config-changed", {
-        detail: { config: newConfig },
-        bubbles: true,
-        composed: true,
-      });
-      this.dispatchEvent(event);
+      if (this._config[configValue] === newValue) return;
+
+      const newConfig = {
+        ...this._config,
+        [configValue]: newValue,
+      };
+
+      this.dispatchEvent(
+        new CustomEvent("config-changed", {
+          detail: { config: newConfig },
+          bubbles: true,
+          composed: true,
+        })
+      );
     }
 
-    _renderActionSettings(actionKey, title) {
-      const actionObj = this._config[actionKey] || { action: "none" };
+    _renderActionConfig(actionPrefix, labelTitle) {
+      const typeKey = `${actionPrefix}_type`;
+      const pathKey = `${actionPrefix}_path`;
+      const scriptKey = `${actionPrefix}_script`;
+
+      const actionType = this._config[typeKey] || "toggle";
+
       return b`
-      <div class="section">
-        <h4>${title}</h4>
-        <select .value="${actionObj.action}" data-path="${actionKey}.action" @change="${this._valueChanged}">
-          <option value="none">Aucune action</option>
-          <option value="toggle">Toggle (Inverser)</option>
+      <div class="action-group">
+        <h4>${labelTitle}</h4>
+        <select
+          .value=${actionType}
+          .configValue=${typeKey}
+          @change=${this._valueChanged}
+        >
+          <option value="toggle">Toggle (Inverser entité)</option>
           <option value="navigate">Naviguer</option>
           <option value="execute_script">Exécuter un script</option>
+          <option value="none">Aucune action</option>
         </select>
-        
-        ${actionObj.action === "navigate" ? b`
-          <input type="text" placeholder="Chemin (ex: /lovelace/home)" .value="${actionObj.navigation_path || ''}" data-path="${actionKey}.navigation_path" @input="${this._valueChanged}">
-        ` : ""}
-        
-        ${actionObj.action === "execute_script" ? b`
-          <input type="text" placeholder="ID Script (ex: script.mon_script)" .value="${actionObj.script || ''}" data-path="${actionKey}.script" @input="${this._valueChanged}">
-        ` : ""}
+
+        ${actionType === "navigate"
+          ? b`
+              <ha-textfield
+                .label=${"Chemin (ex: /lovelace/entree)"}
+                .value=${this._config[pathKey] || ""}
+                .configValue=${pathKey}
+                @input=${this._valueChanged}
+              ></ha-textfield>
+            `
+          : ""}
+
+        ${actionType === "execute_script"
+          ? b`
+              <ha-entity-picker
+                .label=${"Script à exécuter"}
+                .hass=${this.hass}
+                .value=${this._config[scriptKey] || ""}
+                .configValue=${scriptKey}
+                .includeDomains=${["script"]}
+                @value-changed=${this._valueChanged}
+                allow-custom-entity
+              ></ha-entity-picker>
+            `
+          : ""}
       </div>
     `;
     }
@@ -280,49 +315,142 @@
       if (!this.hass || !this._config) return b``;
 
       return b`
-      <div class="editor-container">
+      <div class="card-config">
         <h3>Bouton Principal</h3>
         
-        <div class="grid">
-          <input type="text" placeholder="Entité (ex: switch.lampe)" .value="${this._config.entity || ''}" data-path="entity" @input="${this._valueChanged}">
-          <input type="text" placeholder="Texte affiché" .value="${this._config.name || ''}" data-path="name" @input="${this._valueChanged}">
-          <input type="text" placeholder="Icône (ex: mdi:lamp)" .value="${this._config.icon || ''}" data-path="icon" @input="${this._valueChanged}">
-          <input type="text" placeholder="Couleur actif (ex: #fff176)" .value="${this._config.active_color || ''}" data-path="active_color" @input="${this._valueChanged}">
-          <input type="text" placeholder="Couleur inactif (ex: #ffffff)" .value="${this._config.inactive_color || ''}" data-path="inactive_color" @input="${this._valueChanged}">
-        </div>
+        <!-- Sélecteur d'entité principal -->
+        <ha-entity-picker
+          .label=${"Entité principale"}
+          .hass=${this.hass}
+          .value=${this._config.entity || ""}
+          .configValue=${"entity"}
+          @value-changed=${this._valueChanged}
+          allow-custom-entity
+        ></ha-entity-picker>
 
-        ${this._renderActionSettings('tap_action', 'Action Clic (Bouton)')}
-        ${this._renderActionSettings('hold_action', 'Action Clic Long (Bouton)')}
+        <ha-textfield
+          .label=${"Texte affiché"}
+          .value=${this._config.name || ""}
+          .configValue=${"name"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
 
-        <hr>
+        <!-- Sélecteur d'icône principal -->
+        <ha-icon-picker
+          .label=${"Icône principale"}
+          .hass=${this.hass}
+          .value=${this._config.icon || ""}
+          .configValue=${"icon"}
+          @value-changed=${this._valueChanged}
+        ></ha-icon-picker>
+
+        <ha-textfield
+          .label=${"Couleur actif (ex: #fff176)"}
+          .value=${this._config.active_color || ""}
+          .configValue=${"active_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <ha-textfield
+          .label=${"Couleur inactif (ex: #ffffff)"}
+          .value=${this._config.inactive_color || ""}
+          .configValue=${"inactive_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <!-- Actions du bouton -->
+        ${this._renderActionConfig("tap_action", "Action au clic (Bouton)")}
+        ${this._renderActionConfig("hold_action", "Action clic long (Bouton)")}
+
+        <hr />
 
         <h3>Badge (Optionnel)</h3>
-        <div class="grid">
-          <input type="text" placeholder="Entité du badge" .value="${this._config.badge_entity || ''}" data-path="badge_entity" @input="${this._valueChanged}">
-          <input type="text" placeholder="Icône du badge" .value="${this._config.badge_icon || ''}" data-path="badge_icon" @input="${this._valueChanged}">
-          <input type="text" placeholder="Couleur fond actif" .value="${this._config.badge_active_color || ''}" data-path="badge_active_color" @input="${this._valueChanged}">
-          <input type="text" placeholder="Couleur fond inactif" .value="${this._config.badge_inactive_color || ''}" data-path="badge_inactive_color" @input="${this._valueChanged}">
-        </div>
 
-        ${this._renderActionSettings('badge_tap_action', 'Action Clic (Badge)')}
-        ${this._renderActionSettings('badge_hold_action', 'Action Clic Long (Badge)')}
+        <!-- Sélecteur d'entité du badge -->
+        <ha-entity-picker
+          .label=${"Entité du badge"}
+          .hass=${this.hass}
+          .value=${this._config.badge_entity || ""}
+          .configValue=${"badge_entity"}
+          @value-changed=${this._valueChanged}
+          allow-custom-entity
+        ></ha-entity-picker>
+
+        <!-- Sélecteur d'icône du badge -->
+        <ha-icon-picker
+          .label=${"Icône du badge"}
+          .hass=${this.hass}
+          .value=${this._config.badge_icon || ""}
+          .configValue=${"badge_icon"}
+          @value-changed=${this._valueChanged}
+        ></ha-icon-picker>
+
+        <ha-textfield
+          .label=${"Couleur badge actif (ex: #ffa726)"}
+          .value=${this._config.badge_active_color || ""}
+          .configValue=${"badge_active_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <ha-textfield
+          .label=${"Couleur badge inactif"}
+          .value=${this._config.badge_inactive_color || ""}
+          .configValue=${"badge_inactive_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <!-- Actions du badge -->
+        ${this._renderActionConfig("badge_tap_action", "Action au clic (Badge)")}
+        ${this._renderActionConfig("badge_hold_action", "Action clic long (Badge)")}
       </div>
     `;
     }
 
     static get styles() {
       return i$3`
-      .editor-container { padding: 16px 0; }
-      h3 { margin-top: 0; margin-bottom: 8px; font-size: 1.2em; color: var(--primary-text-color); }
-      h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--secondary-text-color); }
-      .grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 16px; }
-      .section { border-left: 3px solid var(--primary-color); padding-left: 8px; margin-bottom: 12px; }
-      input, select {
-        width: 100%; padding: 8px; margin-bottom: 4px; box-sizing: border-box;
-        border: 1px solid var(--divider-color); border-radius: 4px;
-        background: var(--card-background-color); color: var(--primary-text-color);
+      .card-config {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 8px 0;
       }
-      hr { border: none; border-top: 1px solid var(--divider-color); margin: 24px 0; }
+      h3 {
+        margin: 12px 0 4px 0;
+        font-size: 1.1em;
+        color: var(--primary-text-color);
+      }
+      h4 {
+        margin: 4px 0;
+        font-size: 0.95em;
+        color: var(--secondary-text-color);
+      }
+      ha-entity-picker,
+      ha-icon-picker,
+      ha-textfield,
+      select {
+        width: 100%;
+        display: block;
+      }
+      select {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+      }
+      .action-group {
+        border-left: 3px solid var(--primary-color);
+        padding-left: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--divider-color);
+        margin: 16px 0;
+      }
     `;
     }
   }
@@ -343,7 +471,7 @@
       type: 'ha-plooum-buttonbadge-card',
       name: 'Ha Plooum Button Badge Card',
       description: 'A custom button card to show a custom badge on it.',
-      preview: true, // "true" permet à Home Assistant d'afficher une preview dans la liste
+      preview: true,
     });
   }
 

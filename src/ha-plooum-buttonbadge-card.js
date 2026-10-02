@@ -191,7 +191,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
 }
 
 /* ==========================================================================
-   ÉDITEUR AVEC FORMULAIRE ET SÉLECTEURS NATIONAUX <ha-form>
+   ÉDITEUR DE CARTE (UTILISANT LES COMPOSANTS NATIFS HA)
    ========================================================================== */
 class HaPlooumButtonBadgeCardEditor extends LitElement {
   static get properties() {
@@ -208,85 +208,222 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
   _valueChanged(ev) {
     if (!this._config || !this.hass) return;
     
-    // Le composant <ha-form> renvoie directement l'objet config complet mis à jour
-    const newConfig = ev.detail.value;
+    const target = ev.target;
+    const configValue = target.configValue;
+    if (!configValue) return;
 
-    const event = new CustomEvent("config-changed", {
-      detail: { config: newConfig },
-      bubbles: true,
-      composed: true,
-    });
-    this.dispatchEvent(event);
+    let newValue;
+    if (ev.detail && ev.detail.value !== undefined) {
+      newValue = ev.detail.value;
+    } else if (target.value !== undefined) {
+      newValue = target.value;
+    }
+
+    if (this._config[configValue] === newValue) return;
+
+    const newConfig = {
+      ...this._config,
+      [configValue]: newValue,
+    };
+
+    this.dispatchEvent(
+      new CustomEvent("config-changed", {
+        detail: { config: newConfig },
+        bubbles: true,
+        composed: true,
+      })
+    );
+  }
+
+  _renderActionConfig(actionPrefix, labelTitle) {
+    const typeKey = `${actionPrefix}_type`;
+    const pathKey = `${actionPrefix}_path`;
+    const scriptKey = `${actionPrefix}_script`;
+
+    const actionType = this._config[typeKey] || "toggle";
+
+    return html`
+      <div class="action-group">
+        <h4>${labelTitle}</h4>
+        <select
+          .value=${actionType}
+          .configValue=${typeKey}
+          @change=${this._valueChanged}
+        >
+          <option value="toggle">Toggle (Inverser entité)</option>
+          <option value="navigate">Naviguer</option>
+          <option value="execute_script">Exécuter un script</option>
+          <option value="none">Aucune action</option>
+        </select>
+
+        ${actionType === "navigate"
+          ? html`
+              <ha-textfield
+                .label=${"Chemin (ex: /lovelace/entree)"}
+                .value=${this._config[pathKey] || ""}
+                .configValue=${pathKey}
+                @input=${this._valueChanged}
+              ></ha-textfield>
+            `
+          : ""}
+
+        ${actionType === "execute_script"
+          ? html`
+              <ha-entity-picker
+                .label=${"Script à exécuter"}
+                .hass=${this.hass}
+                .value=${this._config[scriptKey] || ""}
+                .configValue=${scriptKey}
+                .includeDomains=${["script"]}
+                @value-changed=${this._valueChanged}
+                allow-custom-entity
+              ></ha-entity-picker>
+            `
+          : ""}
+      </div>
+    `;
   }
 
   render() {
     if (!this.hass || !this._config) return html``;
 
-    const actionOptions = [
-      { value: "toggle", label: "Toggle (Inverser entité)" },
-      { value: "navigate", label: "Naviguer" },
-      { value: "execute_script", label: "Exécuter un script" },
-      { value: "none", label: "Aucune action" },
-    ];
-
-    // Définition du schéma interactif
-    const schema = [
-      // --- BOUTON PRINCIPAL ---
-      { name: "entity", label: "Entité principale", selector: { entity: {} } },
-      { name: "name", label: "Texte affiché", selector: { text: {} } },
-      { name: "icon", label: "Icône principale", selector: { icon: {} } },
-      { name: "active_color", label: "Couleur actif (ex: #fff176)", selector: { text: {} } },
-      { name: "inactive_color", label: "Couleur inactif (ex: #ffffff)", selector: { text: {} } },
-
-      // --- ACTIONS BOUTON ---
-      { name: "tap_action_type", label: "Action au clic (Bouton)", selector: { select: { options: actionOptions } } },
-      ...(this._config.tap_action_type === "navigate"
-        ? [{ name: "tap_action_path", label: "Chemin de navigation (ex: /lovelace/entree)", selector: { text: {} } }]
-        : []),
-      ...(this._config.tap_action_type === "execute_script"
-        ? [{ name: "tap_action_script", label: "Script à exécuter", selector: { entity: { domain: "script" } } }]
-        : []),
-
-      { name: "hold_action_type", label: "Action clic long (Bouton)", selector: { select: { options: actionOptions } } },
-      ...(this._config.hold_action_type === "navigate"
-        ? [{ name: "hold_action_path", label: "Chemin de navigation (Clic long)", selector: { text: {} } }]
-        : []),
-      ...(this._config.hold_action_type === "execute_script"
-        ? [{ name: "hold_action_script", label: "Script à exécuter (Clic long)", selector: { entity: { domain: "script" } } }]
-        : []),
-
-      // --- BADGE ---
-      { name: "badge_entity", label: "Entité du badge", selector: { entity: {} } },
-      { name: "badge_icon", label: "Icône du badge", selector: { icon: {} } },
-      { name: "badge_active_color", label: "Couleur fond badge actif", selector: { text: {} } },
-      { name: "badge_inactive_color", label: "Couleur fond badge inactif", selector: { text: {} } },
-
-      // --- ACTIONS BADGE ---
-      { name: "badge_tap_action_type", label: "Action au clic (Badge)", selector: { select: { options: actionOptions } } },
-      ...(this._config.badge_tap_action_type === "navigate"
-        ? [{ name: "badge_tap_action_path", label: "Chemin de navigation (Badge)", selector: { text: {} } }]
-        : []),
-      ...(this._config.badge_tap_action_type === "execute_script"
-        ? [{ name: "badge_tap_action_script", label: "Script à exécuter (Badge)", selector: { entity: { domain: "script" } } }]
-        : []),
-
-      { name: "badge_hold_action_type", label: "Action clic long (Badge)", selector: { select: { options: actionOptions } } },
-      ...(this._config.badge_hold_action_type === "navigate"
-        ? [{ name: "badge_hold_action_path", label: "Chemin de navigation (Badge clic long)", selector: { text: {} } }]
-        : []),
-      ...(this._config.badge_hold_action_type === "execute_script"
-        ? [{ name: "badge_hold_action_script", label: "Script à exécuter (Badge clic long)", selector: { entity: { domain: "script" } } }]
-        : []),
-    ];
-
     return html`
-      <ha-form
-        .hass=${this.hass}
-        .data=${this._config}
-        .schema=${schema}
-        .computeLabel=${(s) => s.label ?? s.name}
-        @value-changed=${this._valueChanged}
-      ></ha-form>
+      <div class="card-config">
+        <h3>Bouton Principal</h3>
+        
+        <!-- Sélecteur d'entité principal -->
+        <ha-entity-picker
+          .label=${"Entité principale"}
+          .hass=${this.hass}
+          .value=${this._config.entity || ""}
+          .configValue=${"entity"}
+          @value-changed=${this._valueChanged}
+          allow-custom-entity
+        ></ha-entity-picker>
+
+        <ha-textfield
+          .label=${"Texte affiché"}
+          .value=${this._config.name || ""}
+          .configValue=${"name"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <!-- Sélecteur d'icône principal -->
+        <ha-icon-picker
+          .label=${"Icône principale"}
+          .hass=${this.hass}
+          .value=${this._config.icon || ""}
+          .configValue=${"icon"}
+          @value-changed=${this._valueChanged}
+        ></ha-icon-picker>
+
+        <ha-textfield
+          .label=${"Couleur actif (ex: #fff176)"}
+          .value=${this._config.active_color || ""}
+          .configValue=${"active_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <ha-textfield
+          .label=${"Couleur inactif (ex: #ffffff)"}
+          .value=${this._config.inactive_color || ""}
+          .configValue=${"inactive_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <!-- Actions du bouton -->
+        ${this._renderActionConfig("tap_action", "Action au clic (Bouton)")}
+        ${this._renderActionConfig("hold_action", "Action clic long (Bouton)")}
+
+        <hr />
+
+        <h3>Badge (Optionnel)</h3>
+
+        <!-- Sélecteur d'entité du badge -->
+        <ha-entity-picker
+          .label=${"Entité du badge"}
+          .hass=${this.hass}
+          .value=${this._config.badge_entity || ""}
+          .configValue=${"badge_entity"}
+          @value-changed=${this._valueChanged}
+          allow-custom-entity
+        ></ha-entity-picker>
+
+        <!-- Sélecteur d'icône du badge -->
+        <ha-icon-picker
+          .label=${"Icône du badge"}
+          .hass=${this.hass}
+          .value=${this._config.badge_icon || ""}
+          .configValue=${"badge_icon"}
+          @value-changed=${this._valueChanged}
+        ></ha-icon-picker>
+
+        <ha-textfield
+          .label=${"Couleur badge actif (ex: #ffa726)"}
+          .value=${this._config.badge_active_color || ""}
+          .configValue=${"badge_active_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <ha-textfield
+          .label=${"Couleur badge inactif"}
+          .value=${this._config.badge_inactive_color || ""}
+          .configValue=${"badge_inactive_color"}
+          @input=${this._valueChanged}
+        ></ha-textfield>
+
+        <!-- Actions du badge -->
+        ${this._renderActionConfig("badge_tap_action", "Action au clic (Badge)")}
+        ${this._renderActionConfig("badge_hold_action", "Action clic long (Badge)")}
+      </div>
+    `;
+  }
+
+  static get styles() {
+    return css`
+      .card-config {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 8px 0;
+      }
+      h3 {
+        margin: 12px 0 4px 0;
+        font-size: 1.1em;
+        color: var(--primary-text-color);
+      }
+      h4 {
+        margin: 4px 0;
+        font-size: 0.95em;
+        color: var(--secondary-text-color);
+      }
+      ha-entity-picker,
+      ha-icon-picker,
+      ha-textfield,
+      select {
+        width: 100%;
+        display: block;
+      }
+      select {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+        color: var(--primary-text-color);
+      }
+      .action-group {
+        border-left: 3px solid var(--primary-color);
+        padding-left: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 4px;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid var(--divider-color);
+        margin: 16px 0;
+      }
     `;
   }
 }
