@@ -185,8 +185,12 @@
         gap: 10px;
       }
       .content ha-icon {
-        width: 30px;
-        height: 30px;
+        --mdc-icon-size: 28px;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
       }
       .content span {
@@ -206,11 +210,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
       .badge ha-icon {
-        width: 19px;
-        height: 19px;
+        --mdc-icon-size: 16px;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         color: #ffffff;
       }
     `;
@@ -218,7 +226,7 @@
   }
 
   /* ==========================================================================
-     ÉDITEUR DE CARTE (UTILISANT LES COMPOSANTS NATIFS HA)
+     ÉDITEUR DE CARTE (CORRIGÉ & COMPATIBLE)
      ========================================================================== */
   class HaPlooumButtonBadgeCardEditor extends i {
     static get properties() {
@@ -228,29 +236,42 @@
       };
     }
 
+    connectedCallback() {
+      super.connectedCallback();
+      this._loadHAElements();
+    }
+
+    async _loadHAElements() {
+      if (customElements.get("ha-entity-picker")) return;
+
+      if (window.loadCardHelpers) {
+        const helpers = await window.loadCardHelpers();
+        if (helpers) {
+          await helpers.createCardElement({ type: "button" });
+          this.requestUpdate();
+        }
+      }
+    }
+
     setConfig(config) {
       this._config = config;
     }
 
-    _valueChanged(ev) {
+    _valueChanged(ev, key) {
       if (!this._config || !this.hass) return;
       
-      const target = ev.target;
-      const configValue = target.configValue;
-      if (!configValue) return;
-
       let newValue;
       if (ev.detail && ev.detail.value !== undefined) {
         newValue = ev.detail.value;
-      } else if (target.value !== undefined) {
-        newValue = target.value;
+      } else if (ev.target && ev.target.value !== undefined) {
+        newValue = ev.target.value;
       }
 
-      if (this._config[configValue] === newValue) return;
+      if (this._config[key] === newValue) return;
 
       const newConfig = {
         ...this._config,
-        [configValue]: newValue,
+        [key]: newValue,
       };
 
       this.dispatchEvent(
@@ -274,8 +295,7 @@
         <h4>${labelTitle}</h4>
         <select
           .value=${actionType}
-          .configValue=${typeKey}
-          @change=${this._valueChanged}
+          @change=${(e) => this._valueChanged(e, typeKey)}
         >
           <option value="toggle">Toggle (Inverser entité)</option>
           <option value="navigate">Naviguer</option>
@@ -285,12 +305,14 @@
 
         ${actionType === "navigate"
           ? b`
-              <ha-textfield
-                .label=${"Chemin (ex: /lovelace/entree)"}
-                .value=${this._config[pathKey] || ""}
-                .configValue=${pathKey}
-                @input=${this._valueChanged}
-              ></ha-textfield>
+              <div class="input-field">
+                <label>Chemin de navigation (ex: /lovelace/entree)</label>
+                <input
+                  type="text"
+                  .value=${this._config[pathKey] || ""}
+                  @input=${(e) => this._valueChanged(e, pathKey)}
+                />
+              </div>
             `
           : ""}
 
@@ -300,9 +322,8 @@
                 .label=${"Script à exécuter"}
                 .hass=${this.hass}
                 .value=${this._config[scriptKey] || ""}
-                .configValue=${scriptKey}
                 .includeDomains=${["script"]}
-                @value-changed=${this._valueChanged}
+                @value-changed=${(e) => this._valueChanged(e, scriptKey)}
                 allow-custom-entity
               ></ha-entity-picker>
             `
@@ -318,47 +339,49 @@
       <div class="card-config">
         <h3>Bouton Principal</h3>
         
-        <!-- Sélecteur d'entité principal -->
         <ha-entity-picker
           .label=${"Entité principale"}
           .hass=${this.hass}
           .value=${this._config.entity || ""}
-          .configValue=${"entity"}
-          @value-changed=${this._valueChanged}
+          @value-changed=${(e) => this._valueChanged(e, "entity")}
           allow-custom-entity
         ></ha-entity-picker>
 
-        <ha-textfield
-          .label=${"Texte affiché"}
-          .value=${this._config.name || ""}
-          .configValue=${"name"}
-          @input=${this._valueChanged}
-        ></ha-textfield>
+        <div class="input-field">
+          <label>Texte du bouton</label>
+          <input
+            type="text"
+            placeholder="Nom affiché sur le bouton"
+            .value=${this._config.name || ""}
+            @input=${(e) => this._valueChanged(e, "name")}
+          />
+        </div>
 
-        <!-- Sélecteur d'icône principal -->
         <ha-icon-picker
           .label=${"Icône principale"}
           .hass=${this.hass}
           .value=${this._config.icon || ""}
-          .configValue=${"icon"}
-          @value-changed=${this._valueChanged}
+          @value-changed=${(e) => this._valueChanged(e, "icon")}
         ></ha-icon-picker>
 
-        <ha-textfield
-          .label=${"Couleur actif (ex: #fff176)"}
-          .value=${this._config.active_color || ""}
-          .configValue=${"active_color"}
-          @input=${this._valueChanged}
-        ></ha-textfield>
+        <div class="input-field">
+          <label>Couleur actif (ex: #fff176)</label>
+          <input
+            type="text"
+            .value=${this._config.active_color || ""}
+            @input=${(e) => this._valueChanged(e, "active_color")}
+          />
+        </div>
 
-        <ha-textfield
-          .label=${"Couleur inactif (ex: #ffffff)"}
-          .value=${this._config.inactive_color || ""}
-          .configValue=${"inactive_color"}
-          @input=${this._valueChanged}
-        ></ha-textfield>
+        <div class="input-field">
+          <label>Couleur inactif (ex: #ffffff)</label>
+          <input
+            type="text"
+            .value=${this._config.inactive_color || ""}
+            @input=${(e) => this._valueChanged(e, "inactive_color")}
+          />
+        </div>
 
-        <!-- Actions du bouton -->
         ${this._renderActionConfig("tap_action", "Action au clic (Bouton)")}
         ${this._renderActionConfig("hold_action", "Action clic long (Bouton)")}
 
@@ -366,40 +389,39 @@
 
         <h3>Badge (Optionnel)</h3>
 
-        <!-- Sélecteur d'entité du badge -->
         <ha-entity-picker
           .label=${"Entité du badge"}
           .hass=${this.hass}
           .value=${this._config.badge_entity || ""}
-          .configValue=${"badge_entity"}
-          @value-changed=${this._valueChanged}
+          @value-changed=${(e) => this._valueChanged(e, "badge_entity")}
           allow-custom-entity
         ></ha-entity-picker>
 
-        <!-- Sélecteur d'icône du badge -->
         <ha-icon-picker
           .label=${"Icône du badge"}
           .hass=${this.hass}
           .value=${this._config.badge_icon || ""}
-          .configValue=${"badge_icon"}
-          @value-changed=${this._valueChanged}
+          @value-changed=${(e) => this._valueChanged(e, "badge_icon")}
         ></ha-icon-picker>
 
-        <ha-textfield
-          .label=${"Couleur badge actif (ex: #ffa726)"}
-          .value=${this._config.badge_active_color || ""}
-          .configValue=${"badge_active_color"}
-          @input=${this._valueChanged}
-        ></ha-textfield>
+        <div class="input-field">
+          <label>Couleur fond badge actif (ex: #ffa726)</label>
+          <input
+            type="text"
+            .value=${this._config.badge_active_color || ""}
+            @input=${(e) => this._valueChanged(e, "badge_active_color")}
+          />
+        </div>
 
-        <ha-textfield
-          .label=${"Couleur badge inactif"}
-          .value=${this._config.badge_inactive_color || ""}
-          .configValue=${"badge_inactive_color"}
-          @input=${this._valueChanged}
-        ></ha-textfield>
+        <div class="input-field">
+          <label>Couleur fond badge inactif</label>
+          <input
+            type="text"
+            .value=${this._config.badge_inactive_color || ""}
+            @input=${(e) => this._valueChanged(e, "badge_inactive_color")}
+          />
+        </div>
 
-        <!-- Actions du badge -->
         ${this._renderActionConfig("badge_tap_action", "Action au clic (Badge)")}
         ${this._renderActionConfig("badge_hold_action", "Action clic long (Badge)")}
       </div>
@@ -424,19 +446,30 @@
         font-size: 0.95em;
         color: var(--secondary-text-color);
       }
-      ha-entity-picker,
-      ha-icon-picker,
-      ha-textfield,
+      .input-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .input-field label {
+        font-size: 0.85em;
+        color: var(--secondary-text-color);
+      }
+      input[type="text"],
       select {
         width: 100%;
-        display: block;
-      }
-      select {
-        padding: 8px;
+        padding: 10px;
         border-radius: 4px;
-        border: 1px solid var(--divider-color);
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
+        border: 1px solid var(--divider-color, #ccc);
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color, #000);
+        box-sizing: border-box;
+        font-size: 14px;
+      }
+      ha-entity-picker,
+      ha-icon-picker {
+        width: 100%;
+        display: block;
       }
       .action-group {
         border-left: 3px solid var(--primary-color);
