@@ -169,7 +169,7 @@
       .plooum-card {
         background: rgba(0, 0, 0, 0.35);
         border-radius: 20px;
-        padding: 4px 8px; /* Réduit pour gratter de l'espace horizontal */
+        padding: 4px 8px;
         box-sizing: border-box;
         box-shadow: none;
         border: none;
@@ -187,17 +187,16 @@
         height: 100%;
         width: 100%;
         box-sizing: border-box;
-        /* Le padding de protection est ajouté dynamiquement */
       }
       .content.has-badge {
-        padding-right: 14px; /* Réservé UNIQUEMENT si un badge est présent */
+        padding-right: 14px;
       }
       .inner {
         display: flex;
         align-items: center;
-        justify-content: center;
-        width: 100%; /* Prend toute la place pour étaler icône/texte sur les bords si besoin */
-        min-width: 0; /* Crucial pour que text-overflow fonctionne */
+        justify-content: flex-start; /* S'aligne vers la gauche si la carte se réduit */
+        width: 100%;
+        min-width: 0;
       }
       .inner ha-icon {
         --mdc-icon-size: 28px;
@@ -206,20 +205,17 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        flex-shrink: 0; /* L'icône ne rétrécit jamais */
+        flex-shrink: 0;
       }
       .spacer {
-        flex: 0 9999 10px; /* L'espace désiré idéalement (10px), se compresse en priorité absolue (9999) */
-        min-width: 4px; /* Dès qu'il ne reste que 4px d'espace, le texte commence à être tronqué */
+        flex: 0 1 8px; /* Espace flexible qui peut se réduire si vraiment nécessaire */
+        min-width: 2px;
       }
       .inner span {
         font-size: 14px;
         font-weight: 700;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis; /* Les "..." finaux */
-        flex: 0 1 auto; /* Autorise la compression une fois le spacer compressé au max */
-        min-width: 0;
+        flex-shrink: 0; /* Empêche le texte de se faire écraser / tronquer */
       }
       .badge {
         position: absolute;
