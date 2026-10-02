@@ -172,13 +172,13 @@
         border: none;
         position: relative;
         height: 56px;
-        overflow: hidden; /* Cache ce qui dépasse vraiment trop des bords de la carte */
+        overflow: visible; /* Indispensable pour laisser le badge dépasser de la carte sans être coupé */
         cursor: pointer;
         user-select: none;
         -webkit-user-select: none;
       }
       .plooum-card.has-badge {
-        padding-right: 20px; /* Espace pour le badge à droite */
+        padding-right: 20px;
       }
       .content {
         position: relative;
@@ -192,20 +192,20 @@
         width: 28px;
         height: 28px;
         flex-shrink: 0;
-        z-index: 1; /* L'icône est en dessous */
+        z-index: 1;
       }
       .main-text {
         position: absolute;
-        left: 0; /* Le texte part de tout à gauche de la carte */
+        left: 0;
         right: 0;
-        text-align: center; /* Centré par défaut s'il y a de la place */
+        text-align: center;
         font-size: 14px;
         font-weight: 700;
         white-space: nowrap;
-        z-index: 2; /* Le texte passe par-dessus l'icône si la carte rétrécit */
+        z-index: 2;
         pointer-events: none;
-        /* Padding dynamique pour ne pas démarrer sur l'icône quand la carte est large */
-        padding-left: 36px; 
+        /* Réduit à 28px pour que le texte puisse se décaler et mordre un peu plus sur l'icône */
+        padding-left: 28px; 
       }
       .badge {
         position: absolute;
