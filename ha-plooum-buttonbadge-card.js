@@ -145,18 +145,15 @@
       }
 
       return b`
-      <ha-card class="plooum-card"
+      <ha-card class="plooum-card ${hasBadge ? 'has-badge' : ''}"
                @mousedown="${(e) => this._startTimer(e, 'main')}"
                @mouseup="${(e) => this._stopTimer(e, 'main')}"
                @touchstart="${(e) => this._startTimer(e, 'main')}"
                @touchend="${(e) => this._stopTimer(e, 'main')}">
         
-        <div class="content ${hasBadge ? 'has-badge' : ''}">
-          <div class="inner">
-            ${showIcon ? b`<ha-icon icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
-            ${(showIcon && showName) ? b`<div class="spacer"></div>` : ""}
-            ${showName ? b`<span style="color: ${color};">${this.config.name}</span>` : ""}
-          </div>
+        <div class="content">
+          ${showIcon ? b`<ha-icon class="main-icon" icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
+          ${showName ? b`<span class="main-text" style="color: ${color};">${this.config.name}</span>` : ""}
         </div>
 
         ${badgeHtml}
@@ -175,53 +172,46 @@
         border: none;
         position: relative;
         height: 56px;
-        overflow: visible;
+        overflow: hidden; /* Cache ce qui dépasse vraiment trop des bords de la carte */
         cursor: pointer;
         user-select: none;
         -webkit-user-select: none;
       }
+      .plooum-card.has-badge {
+        padding-right: 20px; /* Espace pour le badge à droite */
+      }
       .content {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        position: relative;
         height: 100%;
         width: 100%;
-        box-sizing: border-box;
-      }
-      .content.has-badge {
-        padding-right: 14px;
-      }
-      .inner {
         display: flex;
         align-items: center;
-        justify-content: flex-start; /* S'aligne vers la gauche si la carte se réduit */
-        width: 100%;
-        min-width: 0;
       }
-      .inner ha-icon {
+      .main-icon {
         --mdc-icon-size: 28px;
         width: 28px;
         height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         flex-shrink: 0;
+        z-index: 1; /* L'icône est en dessous */
       }
-      .spacer {
-        flex: 0 1 8px; /* Espace flexible qui peut se réduire si vraiment nécessaire */
-        min-width: 2px;
-      }
-      .inner span {
+      .main-text {
+        position: absolute;
+        left: 0; /* Le texte part de tout à gauche de la carte */
+        right: 0;
+        text-align: center; /* Centré par défaut s'il y a de la place */
         font-size: 14px;
         font-weight: 700;
         white-space: nowrap;
-        flex-shrink: 0; /* Empêche le texte de se faire écraser / tronquer */
+        z-index: 2; /* Le texte passe par-dessus l'icône si la carte rétrécit */
+        pointer-events: none;
+        /* Padding dynamique pour ne pas démarrer sur l'icône quand la carte est large */
+        padding-left: 36px; 
       }
       .badge {
         position: absolute;
         top: -5px;
         right: -5px;
-        z-index: 2;
+        z-index: 3;
         border-radius: 50%;
         width: 30px;
         height: 30px;
