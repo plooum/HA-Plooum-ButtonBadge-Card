@@ -185,12 +185,12 @@
         width: 100%;
         min-height: 44px;
         display: flex;
-        align-items: center; /* Centre verticalement l'icône de façon fixe */
+        align-items: center;
       }
       .main-icon {
-        --mdc-icon-size: 28px;
-        width: 28px;
-        height: 28px;
+        --mdc-icon-size: 24px;
+        width: 24px;
+        height: 24px;
         flex-shrink: 0;
         z-index: 1;
         margin-left: -4px;
@@ -200,16 +200,17 @@
       }
       .main-text {
         position: absolute;
-        inset: 0; /* Occupe tout l'espace du conteneur parent */
+        inset: 0;
         display: flex;
-        align-items: center; /* Centre verticalement le texte (1 ligne ou multiligne) */
-        justify-content: center; /* Centre horizontalement */
+        align-items: center;
+        justify-content: center;
         text-align: center;
         font-size: 13px;
         line-height: 1.2;
         font-weight: 700;
         white-space: normal;
-        word-break: break-word;
+        word-break: normal; /* Empêche de couper les mots au milieu */
+        overflow-wrap: normal; /* S'assure de ne couper qu'aux espaces */
         z-index: 2;
         pointer-events: none;
         padding-left: 24px;
