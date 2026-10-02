@@ -47,6 +47,7 @@
         entity: "",
         name: "My Button",
         icon: "mdi:lightbulb",
+        font_size: "13px",
         active_color: "#FFC107",
         inactive_color: "#FFFFFF",
         tap_action_type: "toggle",
@@ -120,6 +121,7 @@
 
       const showIcon = !!this.config.icon;
       const showName = !!this.config.name;
+      const fontSize = this.config.font_size || "13px";
 
       // -- Badge Calculations --
       const hasBadge = !!(this.config.badge_entity || this.config.badge_icon);
@@ -153,7 +155,7 @@
         
         <div class="content">
           ${showIcon ? b`<ha-icon class="main-icon" icon="${this.config.icon}" style="color: ${color};"></ha-icon>` : ""}
-          ${showName ? b`<span class="main-text" style="color: ${color};">${this.config.name}</span>` : ""}
+          ${showName ? b`<span class="main-text" style="color: ${color}; font-size: ${fontSize};">${this.config.name}</span>` : ""}
         </div>
 
         ${badgeHtml}
@@ -205,12 +207,11 @@
         align-items: center;
         justify-content: center;
         text-align: center;
-        font-size: 13px;
         line-height: 1.2;
         font-weight: 700;
         white-space: normal;
-        word-break: normal; /* Empêche de couper les mots au milieu */
-        overflow-wrap: normal; /* S'assure de ne couper qu'aux espaces */
+        word-break: normal;
+        overflow-wrap: normal;
         z-index: 2;
         pointer-events: none;
         padding-left: 24px;
@@ -397,6 +398,16 @@
             placeholder="Name displayed on the button"
             .value=${this._config.name || ""}
             @input=${(e) => this._valueChanged(e, "name")}
+          />
+        </div>
+
+        <div class="input-field">
+          <label>Font size (e.g., 13px, 1rem)</label>
+          <input
+            type="text"
+            placeholder="13px"
+            .value=${this._config.font_size || "13px"}
+            @input=${(e) => this._valueChanged(e, "font_size")}
           />
         </div>
 
