@@ -23,6 +23,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
       font_size: "13px",
       icon_size: "24px",
       badge_icon_size: "20px",
+      text_padding_left: "24px",
       active_color: "#FFC107",
       inactive_color: "#FFFFFF",
       tap_action_type: "toggle",
@@ -99,6 +100,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
     const fontSize = this.config.font_size || "13px";
     const iconSize = this.config.icon_size || "24px";
     const badgeIconSize = this.config.badge_icon_size || "20px";
+    const textPaddingLeft = this.config.text_padding_left || "24px";
 
     // -- Badge Calculations --
     const hasBadge = !!(this.config.badge_entity || this.config.badge_icon);
@@ -132,7 +134,7 @@ class HaPlooumButtonBadgeCard extends LitElement {
         
         <div class="content">
           ${showIcon ? html`<ha-icon class="main-icon" icon="${this.config.icon}" style="color: ${color}; --mdc-icon-size: ${iconSize}; width: ${iconSize}; height: ${iconSize};"></ha-icon>` : ""}
-          ${showName ? html`<span class="main-text" style="color: ${color}; font-size: ${fontSize};">${this.config.name}</span>` : ""}
+          ${showName ? html`<span class="main-text" style="color: ${color}; font-size: ${fontSize}; padding-left: ${textPaddingLeft};">${this.config.name}</span>` : ""}
         </div>
 
         ${badgeHtml}
@@ -188,7 +190,6 @@ class HaPlooumButtonBadgeCard extends LitElement {
         overflow-wrap: normal;
         z-index: 2;
         pointer-events: none;
-        padding-left: 24px;
       }
       .badge {
         position: absolute;
@@ -403,6 +404,16 @@ class HaPlooumButtonBadgeCardEditor extends LitElement {
               @input=${(e) => this._valueChanged(e, "icon_size")}
             />
           </div>
+        </div>
+
+        <div class="input-field">
+          <label>Text left padding (Offset)</label>
+          <input
+            type="text"
+            placeholder="24px"
+            .value=${this._config.text_padding_left || "24px"}
+            @input=${(e) => this._valueChanged(e, "text_padding_left")}
+          />
         </div>
 
         <ha-icon-picker
